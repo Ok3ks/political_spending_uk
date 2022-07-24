@@ -1,3 +1,4 @@
+from csv import reader
 import pandas as pd
 import urllib.request
 from io import BytesIO, StringIO
@@ -33,7 +34,23 @@ class Scraper:
         # cleaned columns from nan value
         self.cleaned_column = [int(x) for x in column_values if x == x]
 
-    def _get_lines(self, invoice_index):
+
+    def _to_lines(self, page):
+        """
+        Returns lines in a page
+
+        :param page: PageObject
+        """
+        lines = []
+        text = page.extractText()
+
+        # iterate through lines
+        for line in StringIO(text):
+            lines.append(line)
+
+        return lines
+
+    def _get_document(self, invoice_index, page_index=None):
         """
         Retrieve data from an invoice
 
@@ -43,18 +60,23 @@ class Scraper:
         wFile = urllib.request.urlopen(self.base_url + str(self.cleaned_column[invoice_index]))
         bytes_stream = BytesIO(wFile.read())
         reader_ = PdfReader(bytes_stream)
-        # get the first page from the document
-        page = reader_.pages[0]
 
-        pages_text = page.extractText()
+        document = []
 
-        # get lines
-        lines = []
-        # iterate through lines
-        for line in StringIO(pages_text):
-            lines.append(line)
+        if page_index == None:
+            # default to all pages
+            for page in reader_.pages:
+                output = self._to_lines(page)
+                document.append(output)
+        else:
+            # get the given page from the document
+            if page_index >= 0 and page_index <= reader_.numPages:
+                output = self._to_lines(reader_.pages[page_index])
+                document.append(output)
+            else: 
+                print(f"Page {page_index} does not exist")
 
-        return lines
+        return document
 
     def get_all_invoices(self):
         """
@@ -64,18 +86,18 @@ class Scraper:
         """
         print("Fetching data from all invoices")
         for id in self.cleaned_column:
-            self.invoices.append(self.get_invoice(id))
+            self.invoices.append({'id': id, 'data': self.get_invoice(id)})
 
         return self.invoices
 
-    def get_invoice(self, invoice_id):
+    def get_invoice(self, invoice_id, page=None):
         """
         Get a specific invoice's data
 
         :param invoice_id: Id of the invoice
         """
         if invoice_id in self.cleaned_column:
-            return self._get_lines(self.cleaned_column.index(invoice_id))
+            return self._get_document(self.cleaned_column.index(invoice_id), page_index=page)
         else:
             return FileNotFoundError
 
