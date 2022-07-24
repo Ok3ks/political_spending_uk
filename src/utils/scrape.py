@@ -1,55 +1,85 @@
 import pandas as pd
-import webbrowser
 import urllib.request
-from io import BytesIO
-from PIL import Image
-import pytesseract
+from io import BytesIO, StringIO
 from PyPDF2 import PdfReader
-import io
+from src.config import invoices_base_url, default_path_to_csv
 
+class Scraper:
+    def __init__(self, path_to_csv, base_url=invoices_base_url, verbose=True, fetch_on_init=False):
+        self.path_to_csv = path_to_csv
+        self.base_url = base_url # URL containing all invoices
+        self.verbose = verbose # Log processes
 
-def parser(doc_URL, csvPath):
-    # URL containing all invoices
-    
+        self._csv = None # CSV file
+        self.cleaned_column = None # All columns with values
+        self.invoices = [] # All invoices
 
-    #Read Files
-    csv_ = pd.read_csv(csvPath)
+        # Read files
+        self._read_files()
 
-    # From pandas to list
-    column_values = csv_['RedactedSupportingInvoiceId'].tolist()
+        if fetch_on_init:
+            # Get all invoices on init
+            self.get_all_invoices()
 
-    #cleaned columns from nan value
-    cleaned_column = [int(x) for x in column_values if x == x]
+    def _read_files(self):
+        """
+        Read csv file and import into dataframe
+        """
+        self._csv = pd.read_csv(self.path_to_csv)
 
-    # read hosted document with index doc  w.m: we only checking the first document for now  
-    wFile = urllib.request.urlopen(doc_URL + str(cleaned_column[0]))
-    bytes_stream = BytesIO(wFile.read())
-    reader_ = PdfReader(bytes_stream)
-    # get the first page from the document
-    page = reader_.pages[0]
+        # From pandas to list
+        column_values = self._csv['RedactedSupportingInvoiceId'].tolist()
 
-    pages_text = page.extractText()
+        # cleaned columns from nan value
+        self.cleaned_column = [int(x) for x in column_values if x == x]
 
-    #get lines
-    lines=[] 
-    #iterate through lines
-    for line in io.StringIO(pages_text):
-        lines.append(line)
-    
-    return lines
+    def _get_lines(self, invoice_index):
+        """
+        Retrieve data from an invoice
 
+        :param invoice_index: Index of the invoice in the dataframe
+        """
+        # read hosted document with index doc  w.m: we only checking the first document for now
+        wFile = urllib.request.urlopen(self.base_url + str(self.cleaned_column[invoice_index]))
+        bytes_stream = BytesIO(wFile.read())
+        reader_ = PdfReader(bytes_stream)
+        # get the first page from the document
+        page = reader_.pages[0]
 
-result=parser('http://search.electoralcommission.org.uk/Api/Spending/Invoices/','C:\\Users\\yassi\\OneDrive\\Desktop\\results.csv')
+        pages_text = page.extractText()
 
-print(result)
+        # get lines
+        lines = []
+        # iterate through lines
+        for line in StringIO(pages_text):
+            lines.append(line)
 
+        return lines
 
+    def get_all_invoices(self):
+        """
+        Fetches all invoices' data into memory
 
+        :param invoice_id: Id of the invoice
+        """
+        print("Fetching data from all invoices")
+        for id in self.cleaned_column:
+            self.invoices.append(self.get_invoice(id))
 
+        return self.invoices
 
-    
+    def get_invoice(self, invoice_id):
+        """
+        Get a specific invoice's data
 
+        :param invoice_id: Id of the invoice
+        """
+        if invoice_id in self.cleaned_column:
+            return self._get_lines(self.cleaned_column.index(invoice_id))
+        else:
+            return FileNotFoundError
 
-
-
-
+# For running from terminal
+if __name__ == "__main__":
+    scraper = Scraper(path_to_csv=default_path_to_csv)
+    print(scraper.invoices)
