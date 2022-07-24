@@ -10,3 +10,9 @@ Create a system to classify data spending of political parties with pdf invoices
 
 ## Expected Outcome
 On what services is money spent at elections? This is primary question behind this project. We know that just over £50 million was spent at the last general election, but strikingly little about how. Parties have to report their spending to the Electoral Commission under broad categories (e.g. ‘advertising’ and ‘market research and canvassing’), but this provides very little detail. They do, however, have to provide invoices for any spend over £200 so there is a vast resource available to find out more.
+<<<<<<< HEAD
+=======
+
+## Setup
+For notebooks and other scripts to run successfully set the variables in `config.json` accordingly.
+>>>>>>> document_parser_yassir
