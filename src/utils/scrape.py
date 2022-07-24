@@ -1,15 +1,16 @@
-from csv import reader
+import os
 import pandas as pd
 import urllib.request
 from io import BytesIO, StringIO
 from PyPDF2 import PdfReader
-from src.config import invoices_base_url, default_path_to_csv
+from src.config import invoices_base_url, default_path_to_csv, output_path
 
 class Scraper:
-    def __init__(self, path_to_csv, base_url=invoices_base_url, verbose=True, fetch_on_init=False):
+    def __init__(self, path_to_csv, base_url=invoices_base_url, verbose=True, output_filetype="csv"):
         self.path_to_csv = path_to_csv
         self.base_url = base_url # URL containing all invoices
         self.verbose = verbose # Log processes
+        self.output_filetype = output_filetype
 
         self._csv = None # CSV file
         self.cleaned_column = None # All columns with values
@@ -17,10 +18,6 @@ class Scraper:
 
         # Read files
         self._read_files()
-
-        if fetch_on_init:
-            # Get all invoices on init
-            self.get_all_invoices()
 
     def _read_files(self):
         """
@@ -34,6 +31,24 @@ class Scraper:
         # cleaned columns from nan value
         self.cleaned_column = [int(x) for x in column_values if x == x]
 
+
+    def _retrieve_output(self):
+        """
+        Read csv file and import into dataframe
+        """
+        try: 
+            if self.output_filetype is not None:
+                file_path = output_path + "/out." + self.output_filetype
+                if self.output_filetype == "csv":
+                    self.invoices = pd.read_csv(file_path)
+                elif self.output_filetype == "json":
+                    self.invoices = pd.read_csv(file_path)
+                elif self.output_filetype == "excel":
+                    self.invoices = pd.read_excel(file_path)
+                else:
+                    print(f"Retrieval unsuccessfull: {self.output_filetype} is unsupported")
+        except:
+            raise NotImplementedError
 
     def _to_lines(self, page):
         """
@@ -78,18 +93,6 @@ class Scraper:
 
         return document
 
-    def get_all_invoices(self):
-        """
-        Fetches all invoices' data into memory
-
-        :param invoice_id: Id of the invoice
-        """
-        print("Fetching data from all invoices")
-        for id in self.cleaned_column:
-            self.invoices.append({'id': id, 'data': self.get_invoice(id)})
-
-        return self.invoices
-
     def get_invoice(self, invoice_id, page=None):
         """
         Get a specific invoice's data
@@ -99,7 +102,55 @@ class Scraper:
         if invoice_id in self.cleaned_column:
             return self._get_document(self.cleaned_column.index(invoice_id), page_index=page)
         else:
-            return FileNotFoundError
+            raise FileNotFoundError
+
+    def get_all_invoices(self):
+        """
+        Fetches all invoices' data into memory
+
+        :param save_as: Save to file
+        """
+        try:
+            # TODO: Can be refactored to check if output file exists first 
+            if self.output_filetype is not None:
+                file_path = output_path + "/out." + self.output_filetype
+                if self.output_filetype == "csv":
+                    self.invoices = pd.read_csv(file_path)
+                elif self.output_filetype == "json":
+                    self.invoices = pd.read_csv(file_path)
+                elif self.output_filetype == "excel":
+                    self.invoices = pd.read_excel(file_path)
+                else:
+                    print(f"Retrieval unsuccessfull: {self.output_filetype} is unsupported")
+        except: 
+            print("Retrieval unsuccessfull: something went wrong")
+            print("Now fetching data from all invoices")
+
+            # Do not fall into the try-except nest hole. Just a bit won't hurt haha :)
+            try: 
+                for id in self.cleaned_column:
+                    self.invoices.append({'id': id, 'data': self.get_invoice(id)})
+            except:
+                print(f"Parsing unsuccessfull: something went wrong")
+
+        if self.output_filetype is not None:
+            df = pd.DataFrame(self.invoices)
+            os.makedirs(output_path, exist_ok=True)
+            file_path = output_path + "out." + self.output_filetype
+
+            try:
+                if self.output_filetype == "csv":
+                    df.to_csv(file_path)
+                elif self.output_filetype == "json":
+                    df.to_json(file_path)
+                elif self.output_filetype == "excel":
+                    df.to_excel(file_path)
+                else:
+                    print(f"Save unsuccesful: {self.output_filetype} is unsupported")
+            except:
+                print("Save unsuccesful: something went wrong")
+
+        return self.invoices
 
 # For running from terminal
 if __name__ == "__main__":
