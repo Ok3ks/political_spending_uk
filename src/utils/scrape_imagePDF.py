@@ -29,7 +29,7 @@ class ScrapPDFData:
              page = pytesseract.image_to_pdf_or_hocr(image, extension='pdf')
              pdf = PyPDF2.PdfFileReader(io.BytesIO(page))
              data.append(pdf.getPage(0).extractText())
-             #print(pdf.getPage(0).extractText())
+        
         segmented_data = data[0].splitlines()
         return segmented_data
 
@@ -38,11 +38,15 @@ class ScrapPDFData:
         for data in segmented_data:
             if self.has_price(data):
                 index_tracking.append(segmented_data.index(data))
-        
-        result=self.get_price_with_items(segmented_data[index_tracking[0] -
+        try:
+            result=self.get_price_with_items(segmented_data[index_tracking[0] -
                                                 1: index_tracking[-1]])
+            return result
         
-        return result
+        except:
+            return 'The file is either empty or not readable, please edit the file'
+        
+        
 
 
     def has_price(self,inputString):
@@ -54,7 +58,7 @@ class ScrapPDFData:
 
         for sc in self.unwanted_chars:
             num= num.replace(sc,'')
-            print(num)
+            #print(num)
         if re.match("^(£[0-9]+[\, ])?([0-9]+[\., ])+([0-9]{2})+", num):
             return True
         else:
@@ -67,6 +71,7 @@ class ScrapPDFData:
 
 
     def get_price_with_items(self,received_result):
+        #print(received_result)
         j=0
         try:
             for i in range(j,len(received_result)):
@@ -80,6 +85,7 @@ class ScrapPDFData:
             
             return [' '.join(sentence) for sentence in self.final]
         except IndexError:
+            
             result = self.data_structuring([' '.join(sentence)
                                   for sentence in self.final])
             return result
@@ -88,7 +94,6 @@ class ScrapPDFData:
         
         data=[s for s in semi_clean_data if 'VAT' not in s]
         data = [s for s in data if 'Subtotal' not in s]
-        #print(data)
         total=[]
         for sent in data:
             numbers = []
@@ -119,7 +124,7 @@ class ScrapPDFData:
 
 # initialize the Scraper
 scraper = ScrapPDFData(
-    'http://search.electoralcommission.org.uk/Api/Spending/Invoices/', 66755)
+    'http://search.electoralcommission.org.uk/Api/Spending/Invoices/', 68072)
 
 print(scraper.get_items(scraper.splitToLines())) # simple print to check the output
 
