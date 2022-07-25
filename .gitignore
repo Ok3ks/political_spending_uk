@@ -1,9 +1,5 @@
 __pycache__/
 *.py[cod]
 *$py.class
-<<<<<<< HEAD
-data/**
-=======
 # data/**
->>>>>>> document_parser_yassir
 .DS_Store

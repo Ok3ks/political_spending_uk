@@ -3,6 +3,7 @@ import pandas as pd
 import urllib.request
 from io import BytesIO, StringIO
 from PyPDF2 import PdfReader
+from src.utils.preprocessing import Preprocessor
 from src.config import invoices_base_url, default_path_to_csv, output_path
 
 class Scraper:
@@ -15,6 +16,8 @@ class Scraper:
         self._csv = None # CSV file
         self.cleaned_column = None # All columns with values
         self.invoices = [] # All invoices
+
+        self.preprocessor = Preprocessor()
 
         # Read files
         self._read_files()
@@ -82,16 +85,19 @@ class Scraper:
             # default to all pages
             for page in reader_.pages:
                 output = self._to_lines(page)
-                document.append(output)
+                document.extend(output)
         else:
             # get the given page from the document
             if page_index >= 0 and page_index <= reader_.numPages:
                 output = self._to_lines(reader_.pages[page_index])
-                document.append(output)
+                document.extend(output)
             else: 
                 print(f"Page {page_index} does not exist")
 
         return document
+
+    def _clean_up(self, document):
+        pass
 
     def get_invoice(self, invoice_id, page=None):
         """
@@ -100,7 +106,8 @@ class Scraper:
         :param invoice_id: Id of the invoice
         """
         if invoice_id in self.cleaned_column:
-            return self._get_document(self.cleaned_column.index(invoice_id), page_index=page)
+            invoice = self._get_document(self.cleaned_column.index(invoice_id), page_index=page)
+            return self.preprocessor.clean(' '.join(invoice))
         else:
             raise FileNotFoundError
 
