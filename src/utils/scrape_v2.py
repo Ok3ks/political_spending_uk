@@ -9,7 +9,7 @@ import pandas as pd
 from src.config import invoices_base_url, default_path_to_csv, output_path
 
 class Scraper:
-    def __init__(self, path_to_csv=default_path_to_csv, base_url=invoices_base_url, verbose=True, output_filetype="json"):
+    def __init__(self, path_to_csv=default_path_to_csv, base_url=invoices_base_url, output_path=output_path, verbose=True, output_filetype="json"):
         self.arr = []
         self.final = []
         self.unwanted_chars = [',', ':', '£']
@@ -18,6 +18,7 @@ class Scraper:
         self.base_url = base_url # URL containing all invoices
         self.verbose = verbose # Log processes
         self.output_filetype = output_filetype
+        self.output_path = output_path
 
         self._csv = None # CSV file
         self.cleaned_column = None # All columns with values
@@ -41,7 +42,6 @@ class Scraper:
     def _is_money(self,num):
         for sc in self.unwanted_chars:
             num= num.replace(sc,'')
-            #print(num)
         if re.match("^(£[0-9]+[\, ])?([0-9]+[\., ])+([0-9]{2})+", num):
             return True
         else:
@@ -78,7 +78,6 @@ class Scraper:
         return bool(re.search(r'\d', inputString))
 
     def _get_price_with_items(self,received_result, invoice_id):
-        #print(received_result)
         j=0
         try:
             for i in range(j,len(received_result)):
@@ -153,7 +152,6 @@ class Scraper:
         try: 
             for id in self.cleaned_column:
                 self.invoices.extend(self.get_invoice(id))
-                print(self.invoices)
         except:
             print(f"Parsing unsuccessfull: something went wrong")
 
