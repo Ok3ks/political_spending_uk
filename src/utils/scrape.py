@@ -3,7 +3,12 @@ import pandas as pd
 import urllib.request
 from io import BytesIO, StringIO
 from PyPDF2 import PdfReader
-from src.config import invoices_base_url, default_path_to_csv, output_path
+
+invoices_base_url = 'http://search.electoralcommission.org.uk/Api/Spending/Invoices/'
+
+default_path_to_csv = 'C:\\Users\\yassi\\OneDrive\\Desktop\\results.csv'
+
+output_path = 'C:\\Users\\yassi\\OneDrive\\Desktop'
 
 class Scraper:
     def __init__(self, path_to_csv, base_url=invoices_base_url, verbose=True, output_filetype="csv"):
@@ -155,4 +160,4 @@ class Scraper:
 # For running from terminal
 if __name__ == "__main__":
     scraper = Scraper(path_to_csv=default_path_to_csv)
-    print(scraper.invoices)
+    print(scraper.get_all_invoices())
