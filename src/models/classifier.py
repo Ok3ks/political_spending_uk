@@ -3,6 +3,12 @@ import os
 import pandas as pd
 from transformers import pipeline
 from src.config import output_path, output_filetype, labels
+#import fastseq
+import torch
+
+if torch.has_mps: device = torch.device('mps')
+elif torch.has_cuda: device = torch.device('cuda')
+else: torch.device('cpu')
 
 class Classifier:
     def __init__(self, data_filetype="json", labels=labels, output_filetype=output_filetype):
@@ -20,7 +26,7 @@ class Classifier:
         self._read_data()
 
     def _init_model(self):
-        self.model = pipeline('zero-shot-classification', model='facebook/bart-large-mnli')
+        self.model = pipeline('zero-shot-classification', model='facebook/bart-large-mnli', device = device)
 
     def _read_data(self):
         data_file = output_path + 'out.' + self.data_filetype
@@ -72,4 +78,4 @@ class Classifier:
 
         print(f"Saving predictions")
         self.predictions_as_df = pd.DataFrame(self.predictions)
-        self.save_predictions()
+        self._save_predictions()
